@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Space Background with Three.js</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.141.0/build/three.module.js",
+          "OrbitControls": "https://unpkg.com/three@0.141.0/examples/jsm/controls/OrbitControls.js",
+          "GLTFLoader": "https://unpkg.com/three@0.141.0/examples/jsm/loaders/GLTFLoader.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "GLTFLoader";
+      import { OrbitControls } from "OrbitControls";
+
+      let vw, vh;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, vw / vh, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer();
+      const controls = new OrbitControls(camera, renderer.domElement);
+      const loader = new GLTFLoader();
+
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.setSize(vw, vh);
+      document.body.appendChild(renderer.domElement);
+      controls.minDistance = 3;
+      controls.maxDistance = 10;
+
+      const stars = new Array(0);
+
+      for (let i = 0; i < 10000; i++) {
+        const x = THREE.MathUtils.randFloatSpread(1000);
+        const y = THREE.MathUtils.randFloatSpread(1000);
+        const z = THREE.MathUtils.randFloatSpread(1000);
+
+        stars.push(x, y, z);
+      }
+
+      const starsGeometry = new THREE.BufferGeometry();
+
+      starsGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(stars, 3)
+      );
+
+      const starsMaterial = new THREE.PointsMaterial({ color: 0x888888 });
+      const starField = new THREE.Points(starsGeometry, starsMaterial);
+
+      scene.add(starField);
+
+      camera.position.z = 5;
+
+      loader.load("shiba/scene.gltf", (gltf) => {
+        const model = gltf.scene;
+        const boundingBox = new THREE.Box3().setFromObject(model);
+        const pivot = new THREE.Group();
+
+        boundingBox.getCenter(model.position);
+        model.position.multiplyScalar(-1);
+
+        scene.add(pivot);
+        pivot.add(model);
+
+        const animate = () => {
+          requestAnimationFrame(animate);
+
+          starField.rotation.x -= 0.001;
+          starField.rotation.y -= 0.001;
+          pivot.rotation.x += 0.01;
+          pivot.rotation.y += 0.01;
+          controls.update();
+
+          renderer.render(scene, camera);
+        };
+
+        animate();
+      });
+
+      const setViewportSize = () => {
+        vw = window.innerWidth;
+        vh = window.innerHeight;
+
+        renderer.setSize(vw, vh);
+        camera.aspect = vw / vh;
+        camera.updateProjectionMatrix();
+      };
+
+      setViewportSize();
+      window.addEventListener("resize", setViewportSize);
+    </script>
+  </body>
+</html>
